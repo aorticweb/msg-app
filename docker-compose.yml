@@ -2,6 +2,21 @@
 version: "3.9"
 services:
 
+  api:
+    image: aorticweb/msg-app-api
+    build:
+      context: .
+      dockerfile: containers/api/Dockerfile
+      target: dev
+    environment:
+      POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    volumes:
+    - ./:/msg-app:rw
+    depends_on:
+      - migration
+    ports:
+      - 8080:8080
+  
   migration:
     image: aorticweb/msg-app-migration
     build:

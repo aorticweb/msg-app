@@ -4,3 +4,4 @@ create-migration:
 
 init-db:
 	docker-compose run migration
+	docker-compose up api
