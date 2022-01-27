@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	api "github.com/aorticweb/msg-app/app/handlers"
-	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -63,13 +63,12 @@ func gracefullyShutdown(server *http.Server) error {
 	if err == nil {
 		return nil
 	}
-	logrus.Error("Server shutdown did not succeed in %v: %v", shutdownTimeout, err)
+	log.Printf("Server shutdown did not succeed in %v: %v\n", shutdownTimeout, err)
 	err = server.Close()
 
 	if err != nil {
 		return fmt.Errorf("Server close failed: %v", err)
 	}
-	logrus.Info("Bye Bye")
 	return nil
 }
 
@@ -78,10 +77,10 @@ func waitForKillSwitch(kill chan os.Signal, server *http.Server) {
 	gracefullyShutdown(server)
 }
 
-func setupServer(logger *logrus.Logger) (*http.Server, error) {
+func setupServer(logger *log.Logger) (*http.Server, error) {
 	db, err := waitForDB(dbConnectionWaitTime)
 	if err != nil {
-		logger.Error("Failed to fetch database connection")
+		logger.Println("Failed to fetch database connection")
 		return nil, err
 	}
 	killSwitch := registerKillSwitch()
@@ -96,7 +95,7 @@ func setupServer(logger *logrus.Logger) (*http.Server, error) {
 	return &server, nil
 }
 
-func must(err error, logger *logrus.Logger) {
+func must(err error, logger *log.Logger) {
 	if err != nil {
 		logger.Fatal(err)
 		os.Exit(1)
@@ -104,13 +103,13 @@ func must(err error, logger *logrus.Logger) {
 }
 
 func main() {
-	logger := logrus.New()
+	logger := log.New(os.Stdout, "msg-app: ", log.LstdFlags|log.Llongfile)
 	server, err := setupServer(logger)
 	must(err, logger)
-	logger.Info("API says Hello\n")
+	logger.Println("API says Hello")
 	err = server.ListenAndServe()
 	if err == http.ErrServerClosed {
-		logger.Info("API says Goodbye\n")
+		logger.Println("API says Goodbye")
 		os.Exit(0)
 	}
 	must(err, logger)

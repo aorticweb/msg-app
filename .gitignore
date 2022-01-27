@@ -19,3 +19,6 @@
 
 # Scratch file
 .idea
+
+# air temp
+tmp/
