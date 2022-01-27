@@ -1,6 +1,6 @@
 FROM golang:latest as dev
 
-EXPOSE 8080
+EXPOSE 3001
 
 COPY . /msg-app
 WORKDIR /msg-app
@@ -14,7 +14,7 @@ FROM scratch as prod
 
 # FROM ubuntu:bionic as prod
 
-EXPOSE 8080
+EXPOSE 3001
 
 COPY --from=dev /msg-app/app/cmd/api /bin/api
 

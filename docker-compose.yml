@@ -15,7 +15,7 @@ services:
     depends_on:
       - migration
     ports:
-      - 8080:8080
+      - 3001:3001
   
   migration:
     image: aorticweb/msg-app-migration
