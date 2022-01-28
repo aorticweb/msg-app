@@ -45,6 +45,8 @@ func (rm *ReplyMessage) Validate(db *gorm.DB, reID int64) (*crud.Message, *c.API
 		return nil, c.NewBadResponse(http.StatusNotFound, "message with given id does not exist", nil)
 	}
 	msg.REID = &reMessage.ID
+	msg.Recipient = reMessage.Recipient
+	msg.Group = reMessage.Group
 	return &msg, nil
 }
 

@@ -3,6 +3,7 @@ package tests
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -17,6 +18,16 @@ func createGroup(t *testing.T, db *gorm.DB, users []crud.User) *crud.Group {
 	group, err := crud.CreateGroup(db, groupname, users)
 	require.NoError(t, err)
 	return group
+}
+
+func messageReplySuccess(t *testing.T, sender *crud.User) model.ComposedMessage {
+	return model.ComposedMessage{
+		ReplyMessage: model.ReplyMessage{
+			Sender:  sender.Username,
+			Subject: "Greetings",
+			Body:    "You are Hired",
+		},
+	}
 }
 
 func messageUserSuccess(t *testing.T, sender *crud.User, recipient *crud.User) model.ComposedMessage {
@@ -173,4 +184,93 @@ func TestSendMessageToGroupRecipientNotFound(t *testing.T) {
 
 	err = db.First(&crud.Message{}).Error
 	require.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+}
+
+func TestSendReplyMessageToUser(t *testing.T) {
+	db := testDB(t)
+	srv := testServer(t, db)
+	defer clean(t, db, srv)
+	users := createUsers(t, db)
+	existingMsg := crud.Message{
+		Sender:    &users[0],
+		Recipient: &users[1],
+		Subject:   "Waiting for reply",
+		Body:      "Please Respond",
+		SentAt:    time.Now().UTC(),
+	}
+	_, err := crud.CreateMessage(db, &existingMsg)
+	require.NoError(t, err)
+
+	msg := messageReplySuccess(t, &users[1])
+	resp, err := http.Post(url(srv.URL, fmt.Sprintf("/messages/%d/replies", existingMsg.ID)), "application/json", toPayload(t, msg))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	var data model.Message
+	err = json.NewDecoder(resp.Body).Decode(&data)
+
+	require.NoError(t, err)
+	require.Equal(t, msg.Body, data.Body)
+	require.Equal(t, msg.Subject, data.Subject)
+	require.Equal(t, msg.Sender, data.Sender)
+
+	require.True(t, *data.RE == existingMsg.ID)
+
+	sentAtDiff := (time.Now().UTC().Sub(data.SentAt))
+	require.True(t, sentAtDiff < time.Second)
+
+	dbMsg, exist, err := crud.GetMessage(db, data.ID)
+	require.NoError(t, err)
+	require.True(t, exist)
+	assertDBMessage(t, dbMsg, &data)
+}
+
+func TestSendReplyMessageToGroup(t *testing.T) {
+	db := testDB(t)
+	srv := testServer(t, db)
+	defer clean(t, db, srv)
+	users := createUsers(t, db)
+	group := createGroup(t, db, users)
+	existingMsg := crud.Message{
+		Sender:  &users[0],
+		Group:   group,
+		Subject: "Waiting for reply",
+		Body:    "Please Respond",
+		SentAt:  time.Now().UTC(),
+	}
+	_, err := crud.CreateMessage(db, &existingMsg)
+	require.NoError(t, err)
+
+	msg := messageReplySuccess(t, &users[1])
+	resp, err := http.Post(url(srv.URL, fmt.Sprintf("/messages/%d/replies", existingMsg.ID)), "application/json", toPayload(t, msg))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	var data model.Message
+	err = json.NewDecoder(resp.Body).Decode(&data)
+
+	require.NoError(t, err)
+	require.Equal(t, msg.Body, data.Body)
+	require.Equal(t, msg.Subject, data.Subject)
+	require.Equal(t, msg.Sender, data.Sender)
+
+	require.True(t, *data.RE == existingMsg.ID)
+
+	sentAtDiff := (time.Now().UTC().Sub(data.SentAt))
+	require.True(t, sentAtDiff < time.Second)
+
+	dbMsg, exist, err := crud.GetMessage(db, data.ID)
+	require.NoError(t, err)
+	require.True(t, exist)
+	assertDBMessage(t, dbMsg, &data)
+}
+
+func TestSendReplyMessageToUserMessageNotFound(t *testing.T) {
+	db := testDB(t)
+	srv := testServer(t, db)
+	defer clean(t, db, srv)
+	users := createUsers(t, db)
+
+	msg := messageReplySuccess(t, &users[1])
+	resp, err := http.Post(url(srv.URL, "/messages/1/replies"), "application/json", toPayload(t, msg))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
