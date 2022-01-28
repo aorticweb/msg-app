@@ -15,7 +15,7 @@ type ReplyMessage struct {
 	Body    string `json:"body" validate:"required"`
 }
 
-func (rm *ReplyMessage) ValidateSender(db *gorm.DB) (*int64, *c.APIResponse) {
+func (rm *ReplyMessage) ValidateSender(db *gorm.DB) (*crud.User, *c.APIResponse) {
 	sender, exist, err := crud.FindUser(db, rm.Sender)
 	if err != nil {
 		return nil, c.NewBadResponse(http.StatusInternalServerError, "", c.WrapError("failed to query users", err))
@@ -23,7 +23,7 @@ func (rm *ReplyMessage) ValidateSender(db *gorm.DB) (*int64, *c.APIResponse) {
 	if !exist {
 		return nil, c.NewBadResponse(http.StatusNotFound, "user with given username does not exist", nil)
 	}
-	return &sender.ID, nil
+	return sender, nil
 }
 
 func (rm *ReplyMessage) Validate(db *gorm.DB, reID int64) (*crud.Message, *c.APIResponse) {
@@ -32,11 +32,11 @@ func (rm *ReplyMessage) Validate(db *gorm.DB, reID int64) (*crud.Message, *c.API
 		Body:    rm.Body,
 		SentAt:  time.Now().UTC(),
 	}
-	senderID, badResp := rm.ValidateSender(db)
+	sender, badResp := rm.ValidateSender(db)
 	if badResp != nil {
 		return nil, badResp
 	}
-	msg.SenderID = senderID
+	msg.Sender = sender
 	reMessage, exist, err := crud.GetMessage(db, reID)
 	if err != nil {
 		return nil, c.NewBadResponse(http.StatusInternalServerError, "", c.WrapError("failed to query message", err))
@@ -50,7 +50,7 @@ func (rm *ReplyMessage) Validate(db *gorm.DB, reID int64) (*crud.Message, *c.API
 
 type ComposedMessage struct {
 	ReplyMessage
-	Recipient map[string]string `json:"recipient"` // Either crud.User or crud.Group
+	Recipient map[string]string `json:"recipient" validate:"required"` // Either crud.User or crud.Group
 }
 
 func (m *ComposedMessage) Validate(db *gorm.DB) (*crud.Message, *c.APIResponse) {
@@ -64,11 +64,11 @@ func (m *ComposedMessage) Validate(db *gorm.DB) (*crud.Message, *c.APIResponse) 
 	if usernameFound && groupnameFound {
 		return nil, c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
 	}
-	senderID, badResp := m.ValidateSender(db)
+	sender, badResp := m.ValidateSender(db)
 	if badResp != nil {
 		return nil, badResp
 	}
-	msg.SenderID = senderID
+	msg.Sender = sender
 	if usernameFound {
 		user, exist, err := crud.FindUser(db, username)
 		if err != nil {
@@ -77,7 +77,7 @@ func (m *ComposedMessage) Validate(db *gorm.DB) (*crud.Message, *c.APIResponse) 
 		if !exist {
 			return nil, c.NewBadResponse(http.StatusNotFound, "recipient user with given username does not exist", nil)
 		}
-		msg.RecipientID = &user.ID
+		msg.Recipient = user
 		return &msg, nil
 	}
 	if groupnameFound {
@@ -88,7 +88,7 @@ func (m *ComposedMessage) Validate(db *gorm.DB) (*crud.Message, *c.APIResponse) 
 		if !exist {
 			return nil, c.NewBadResponse(http.StatusNotFound, "recipient group with given groupname does not exist", nil)
 		}
-		msg.GroupID = &group.ID
+		msg.Group = group
 		return &msg, nil
 	}
 	return nil, c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
@@ -97,14 +97,13 @@ func (m *ComposedMessage) Validate(db *gorm.DB) (*crud.Message, *c.APIResponse) 
 type Message struct {
 	ComposedMessage
 	ID     int64     `json:"id" validate:"required"`
-	RE     int64     `json:"re"`
+	RE     *int64    `json:"re"`
 	SentAt time.Time `json:"sent_at" validate:"required"`
 }
 
 func ResponseMessageFromDBMessage(m *crud.Message) *Message {
-	rv := Message{
+	msg := Message{
 		ID: m.ID,
-		RE: *m.REID,
 		ComposedMessage: ComposedMessage{
 			ReplyMessage: ReplyMessage{
 				Subject: m.Subject,
@@ -118,9 +117,12 @@ func ResponseMessageFromDBMessage(m *crud.Message) *Message {
 	// Purposefully not raising an error here if
 	// both user and group are missing because of db constraint
 	if m.Group != nil {
-		rv.Recipient["groupname"] = m.Group.Groupname
+		msg.Recipient["groupname"] = m.Group.Groupname
 	} else if m.Recipient != nil {
-		rv.Recipient["username"] = m.Recipient.Username
+		msg.Recipient["username"] = m.Recipient.Username
 	}
-	return &rv
+	if m.REID != nil {
+		msg.RE = m.REID
+	}
+	return &msg
 }

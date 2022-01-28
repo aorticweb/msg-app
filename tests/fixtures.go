@@ -1,7 +1,10 @@
 package tests
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -24,8 +27,6 @@ func url(base string, route string) string {
 func testDB(t *testing.T) *gorm.DB {
 	db, err := crud.WaitForDB(time.Second)
 	require.NoError(t, err)
-	db.DisableNestedTransaction = false
-	log.Println(db.DisableNestedTransaction)
 	tx := db.Begin()
 	tx.SavePoint("beforeTest")
 	return tx
@@ -49,4 +50,11 @@ func clean(t *testing.T, db *gorm.DB, srv *httptest.Server) {
 
 func checkContentType(t *testing.T, resp *http.Response) {
 	require.Equal(t, resp.Header.Get("Content-Type"), "application/json")
+}
+
+func toPayload(t *testing.T, data interface{}) io.Reader {
+	b := new(bytes.Buffer)
+	err := json.NewEncoder(b).Encode(data)
+	require.NoError(t, err)
+	return b
 }

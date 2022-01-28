@@ -10,7 +10,6 @@ import (
 type Message struct {
 	ID          int64     `gorm:"column:id;type:bigserial;primary_key"`
 	REID        *int64    `gorm:"column:re_id;integer"`
-	RE          *Message  `gorm:"foreignKey:re_id"`
 	SenderID    *int64    `gorm:"column:sender_id;integer"`
 	Sender      *User     `gorm:"foreignKey:sender_id"`
 	RecipientID *int64    `gorm:"column:recipient_id;integer"`
@@ -35,7 +34,7 @@ func CreateMessage(db *gorm.DB, message *Message) (*Message, error) {
 
 func GetMessage(db *gorm.DB, messageID int64) (*Message, bool, error) {
 	var msg Message
-	err := db.Where("id = ?", messageID).First(&msg).Error
+	err := db.Preload("Sender").Preload("Recipient").Preload("Group").Where("id = ?", messageID).First(&msg).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, false, nil
 	}

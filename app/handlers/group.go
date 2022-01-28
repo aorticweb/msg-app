@@ -36,7 +36,7 @@ func (a *API) handleGroupPost() HandlerFunc {
 			return c.NewBadResponse(http.StatusConflict, "group with the same Groupname already registered", nil)
 		}
 
-		err = crud.CreateGroup(a.db, groupInput.Groupname, users)
+		_, err = crud.CreateGroup(a.db, groupInput.Groupname, users)
 		if err != nil {
 			return c.NewBadResponse(http.StatusInternalServerError, "", c.WrapError("failed to create group", err))
 		}

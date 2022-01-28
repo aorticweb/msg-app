@@ -12,20 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var username string = "Bobby"
+var user crud.User = crud.User{Username: "Bobby"}
 
 func userSuccessPayload(t *testing.T) io.Reader {
-	jsonStr := []byte(fmt.Sprintf(`{"username": "%s"}`, username))
+	jsonStr := []byte(fmt.Sprintf(`{"username": "%s"}`, user.Username))
 	return bytes.NewBuffer(jsonStr)
 }
 
 func userMissingUsernamePayload(t *testing.T) io.Reader {
-	jsonStr := []byte(fmt.Sprintf(`{"invalid": "%s"}`, username))
+	jsonStr := []byte(fmt.Sprintf(`{"invalid": "%s"}`, user.Username))
 	return bytes.NewBuffer(jsonStr)
 }
 
 func userInvalidPayload(t *testing.T) io.Reader {
-	jsonStr := []byte(fmt.Sprintf(`invalid{"username": "%s"}`, username))
+	jsonStr := []byte(fmt.Sprintf(`invalid{"username": "%s"}`, user.Username))
 	return bytes.NewBuffer(jsonStr)
 }
 
@@ -41,7 +41,7 @@ func TestUserPostSuccess(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&data)
 
 	require.NoError(t, err)
-	require.Equal(t, username, data.Username)
+	require.Equal(t, user.Username, data.Username)
 }
 
 func TestUserPostFailsForDuplicate(t *testing.T) {
@@ -56,7 +56,7 @@ func TestUserPostFailsForDuplicate(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&data)
 
 	require.NoError(t, err)
-	require.Equal(t, username, data.Username)
+	require.Equal(t, user.Username, data.Username)
 
 	resp, err = http.Post(url(srv.URL, "/users"), "application/json", userSuccessPayload(t))
 	require.NoError(t, err)

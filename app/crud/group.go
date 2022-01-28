@@ -44,9 +44,9 @@ func GroupExists(db *gorm.DB, groupname string) (bool, error) {
 	return exist, err
 }
 
-func CreateGroup(db *gorm.DB, groupname string, users []User) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		group := Group{Groupname: groupname}
+func CreateGroup(db *gorm.DB, groupname string, users []User) (*Group, error) {
+	group := Group{Groupname: groupname}
+	err := db.Transaction(func(tx *gorm.DB) error {
 		result := tx.Create(&group)
 		if result.Error != nil {
 			return result.Error
@@ -61,4 +61,8 @@ func CreateGroup(db *gorm.DB, groupname string, users []User) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return &group, nil
 }
