@@ -1,6 +1,8 @@
 package crud
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -25,21 +27,21 @@ func (u *UserGroup) TableName() string {
 	return "public.user_group"
 }
 
-func FindGroup(db *gorm.DB, groupname string) (*Group, error) {
-	var groups []Group
-	err := db.Where("groupname = ?", groupname).Limit(1).Find(&groups).Error
+func FindGroup(db *gorm.DB, groupname string) (*Group, bool, error) {
+	var group Group
+	err := db.Where("groupname = ?", groupname).First(&group).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	if len(groups) == 0 {
-		return nil, nil
-	}
-	return &groups[0], nil
+	return &group, true, nil
 }
 
 func GroupExists(db *gorm.DB, groupname string) (bool, error) {
-	group, err := FindGroup(db, groupname)
-	return group != nil, err
+	_, exist, err := FindGroup(db, groupname)
+	return exist, err
 }
 
 func CreateGroup(db *gorm.DB, groupname string, users []User) error {

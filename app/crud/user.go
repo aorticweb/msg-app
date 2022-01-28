@@ -1,6 +1,8 @@
 package crud
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -22,16 +24,16 @@ func FindUsers(db *gorm.DB, usernames []string) ([]User, error) {
 	return users, nil
 }
 
-func FindUser(db *gorm.DB, username string) (*User, error) {
-	var users []User
-	err := db.Where("username = ?", username).Limit(1).Find(&users).Error
+func FindUser(db *gorm.DB, username string) (*User, bool, error) {
+	var user User
+	err := db.Where("username = ?", username).First(&user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	if len(users) == 0 {
-		return nil, nil
-	}
-	return &users[0], nil
+	return &user, true, nil
 }
 
 func UserExist(db *gorm.DB, username string) (bool, error) {

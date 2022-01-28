@@ -2,32 +2,17 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	c "github.com/aorticweb/msg-app/app/common"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
 
-type APIResponse struct {
-	code    int
-	data    interface{}
-	message string
-	err     error
-}
-
-func newBadResponse(code int, message string, err error) *APIResponse {
-	return &APIResponse{code, nil, message, err}
-}
-
-func newGoodResponse(code int, data interface{}) *APIResponse {
-	return &APIResponse{code, data, "", nil}
-}
-
-type HandlerFunc func(http.ResponseWriter, *http.Request) *APIResponse
+type HandlerFunc func(http.ResponseWriter, *http.Request) *c.APIResponse
 
 type API struct {
 	db       *gorm.DB
@@ -51,20 +36,20 @@ func (a *API) middleware(next HandlerFunc) http.HandlerFunc {
 		startTime := time.Now()
 		resp := next(w, r)
 		defer func() {
-			a.logger.Printf("[%s] %s response [%d]: %s", r.Method, r.URL.Path, resp.code, time.Now().Sub(startTime))
+			a.logger.Printf("[%s] %s response [%d]: %s", r.Method, r.URL.Path, resp.Code, time.Now().Sub(startTime))
 		}()
-		if http.StatusOK <= resp.code && resp.code < 300 {
-			a.okResponse(w, resp.code, resp.data)
+		if http.StatusOK <= resp.Code && resp.Code < 300 {
+			a.okResponse(w, resp.Code, resp.Data)
 			return
 		}
-		if resp.err != nil {
-			a.logger.Println(resp.err)
+		if resp.Err != nil {
+			a.logger.Println(resp.Err)
 		}
-		if resp.message != "" {
-			http.Error(w, resp.message, resp.code)
+		if resp.Message != "" {
+			http.Error(w, resp.Message, resp.Code)
 			return
 		}
-		w.WriteHeader(resp.code)
+		w.WriteHeader(resp.Code)
 	}
 }
 
@@ -77,8 +62,4 @@ func (a *API) okResponse(w http.ResponseWriter, status int, data interface{}) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
-}
-
-func wrapError(context string, e error) error {
-	return fmt.Errorf("%s: %s", context, e)
 }
