@@ -18,6 +18,15 @@ func GetIDFromRequest(r *http.Request) (int64, error) {
 	return strconv.ParseInt(id, 10, 64)
 }
 
+func GetUsernameFromRequest(r *http.Request) (string, error) {
+	vars := mux.Vars(r)
+	username, ok := vars["username"]
+	if !ok {
+		return "", errors.New("username not found in request")
+	}
+	return username, nil
+}
+
 func WrapError(context string, e error) error {
 	return fmt.Errorf("%s: %s", context, e)
 }

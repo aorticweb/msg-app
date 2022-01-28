@@ -44,6 +44,19 @@ func GroupExists(db *gorm.DB, groupname string) (bool, error) {
 	return exist, err
 }
 
+func FindGroupsByUserID(db *gorm.DB, userID int64) ([]int64, error) {
+	var userGroups []UserGroup
+	err := db.Where("user_id = ?", userID).Find(&userGroups).Error
+	if err != nil {
+		return nil, err
+	}
+	var groupIDs []int64
+	for _, group := range userGroups {
+		groupIDs = append(groupIDs, group.GroupID)
+	}
+	return groupIDs, nil
+}
+
 func CreateGroup(db *gorm.DB, groupname string, users []User) (*Group, error) {
 	group := Group{Groupname: groupname}
 	err := db.Transaction(func(tx *gorm.DB) error {

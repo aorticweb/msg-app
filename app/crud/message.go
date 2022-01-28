@@ -43,3 +43,31 @@ func GetMessage(db *gorm.DB, messageID int64) (*Message, bool, error) {
 	}
 	return &msg, true, nil
 }
+
+func GetMessageReplies(db *gorm.DB, messageID int64) ([]Message, error) {
+	var msgs []Message
+	query := db.Preload("Sender").Preload("Recipient").Preload("Group")
+	err := query.Where("re_id = ?", messageID).Order("sent_at DESC").Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	return msgs, nil
+}
+
+func GetUserMailbox(db *gorm.DB, userID int64) ([]Message, error) {
+	// Query
+	// Get Messages where RecipientID = <UserID>
+	// Get Messages Where GroupID IN (Get UserGroup where UserID = <UserID>)
+	groupIDs, err := FindGroupsByUserID(db, userID)
+	if err != nil {
+		return nil, err
+	}
+	var msgs []Message
+	query := db.Preload("Sender").Preload("Recipient").Preload("Group")
+	err = query.Where("recipient_id = ? or group_id in ?", userID, groupIDs).Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	return msgs, nil
+
+}
