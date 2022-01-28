@@ -5,3 +5,9 @@ create-migration:
 init-db:
 	docker-compose run migration
 	docker-compose up api
+
+test:
+	docker-compose down -v
+	docker-compose up -d postgres migration
+	docker-compose run api go test  -failfast ./tests
+

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,43 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aorticweb/msg-app/app/crud"
 	api "github.com/aorticweb/msg-app/app/handlers"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 var dbConnectionWaitTime time.Duration = 5 * time.Minute
 var shutdownTimeout time.Duration = 3 * time.Second
-var serverListenAddr string = ":8080"
-
-func dbConnection(url string) (*gorm.DB, error) {
-	return gorm.Open(postgres.Open(url), &gorm.Config{})
-}
-
-func dbUrl() (string, error) {
-	url, exist := os.LookupEnv("POSTGRES_URL")
-	if !exist {
-		return "", errors.New("Env varialbe POSTGRES_URL is not set")
-	}
-	return url, nil
-}
-
-// waitForDB ... wait up to timeout for database to be up then return connection
-func waitForDB(timeout time.Duration) (*gorm.DB, error) {
-	url, err := dbUrl()
-	if err != nil {
-		return nil, err
-	}
-	db, err := dbConnection(url)
-	for start := time.Now(); time.Since(start) < timeout; {
-		if err == nil {
-			break
-		}
-		db, err = dbConnection(url)
-		time.Sleep(1 * time.Second)
-	}
-	return db, err
-}
+var serverListenAddr string = ":3001" // TODO: get from environment
 
 func registerKillSwitch() chan os.Signal {
 	shutdown := make(chan os.Signal, 1)
@@ -78,7 +47,7 @@ func waitForKillSwitch(kill chan os.Signal, server *http.Server) {
 }
 
 func setupServer(logger *log.Logger) (*http.Server, error) {
-	db, err := waitForDB(dbConnectionWaitTime)
+	db, err := crud.WaitForDB(dbConnectionWaitTime)
 	if err != nil {
 		logger.Println("Failed to fetch database connection")
 		return nil, err
@@ -103,7 +72,7 @@ func must(err error, logger *log.Logger) {
 }
 
 func main() {
-	logger := log.New(os.Stdout, "msg-app: ", log.LstdFlags|log.Llongfile)
+	logger := log.New(os.Stdout, "msg-app: ", log.LstdFlags|log.Lshortfile)
 	server, err := setupServer(logger)
 	must(err, logger)
 	logger.Println("API says Hello")
