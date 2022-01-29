@@ -41,11 +41,11 @@ func (a *API) handleMessageReplyPost() HandlerFunc {
 			return c.NewBadResponse(http.StatusBadRequest, "invalid request", c.WrapError("JSON decoding error", err))
 		}
 		if err = a.validate.Struct(messageInput); err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 		reID, err := c.GetIDFromRequest(r)
 		if err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 		message, badResp := messageInput.Validate(a.db, reID)
 		if badResp != nil {
@@ -64,7 +64,7 @@ func (a *API) handleMessageGet() HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *c.APIResponse {
 		messageID, err := c.GetIDFromRequest(r)
 		if err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 		dbMessage, exist, err := crud.GetMessage(a.db, messageID)
 		if err != nil {
@@ -82,7 +82,7 @@ func (a *API) handleMessageRepliesGet() HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *c.APIResponse {
 		messageID, err := c.GetIDFromRequest(r)
 		if err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 		_, exist, err := crud.GetMessage(a.db, messageID)
 		if err != nil {
@@ -105,7 +105,7 @@ func (a *API) handleInboxGet() HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *c.APIResponse {
 		username, err := c.GetUsernameFromRequest(r)
 		if err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 		user, exist, err := crud.FindUser(a.db, username)
 		if err != nil {

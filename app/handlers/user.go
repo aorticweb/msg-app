@@ -16,7 +16,7 @@ func (a *API) handleUserPost() HandlerFunc {
 			return c.NewBadResponse(http.StatusBadRequest, "invalid request", c.WrapError("JSON decoding error", err))
 		}
 		if err = a.validate.Struct(userInput); err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 		exist, err := crud.UserExist(a.db, userInput.Username)
 		if err != nil {

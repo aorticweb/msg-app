@@ -17,7 +17,7 @@ func (a *API) handleGroupPost() HandlerFunc {
 			return c.NewBadResponse(http.StatusBadRequest, "invalid request", c.WrapError("JSON decoding error", err))
 		}
 		if err = a.validate.Struct(groupInput); err != nil {
-			return c.NewBadResponse(http.StatusBadRequest, "invalid request", nil)
+			return &c.InvalidRequestResponse
 		}
 
 		users, err := crud.FindUsers(a.db, groupInput.Usernames)
