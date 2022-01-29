@@ -41,6 +41,7 @@ make up
 make test
 
 # Area of Improvements
+- Add CI (run tests in github to start then move to gcp)
 - some code could be abstracted (lot of DRY violations)
 - add more integration testing (not every scenario is covered)
 - add unit testing of crud, model and handlers
