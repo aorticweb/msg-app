@@ -12,6 +12,18 @@ NB: this would have been quicker in python but less fun.
 - docker
 - docker-compose
 - psql (optional, if you want to explore the db)
+## setup
+Add .env file in top folder and set the following variable
+
+```
+POSTGRES_DB=<POSTGRES_DB>
+POSTGRES_USER=<POSTGRES_USER>
+POSTGRES_PASSWORD=<POSTGRES_PASSWORD>
+POSTGRES_HOST=<POSTGRES_HOST>
+POSTGRES_PORT=<POSTGRES_PORT>
+```
+
+run docker-compose build
 
 ## services
 all services run inside containers
