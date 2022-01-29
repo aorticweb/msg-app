@@ -29,7 +29,7 @@ func (a *API) handleMessagePost() HandlerFunc {
 			return c.NewBadResponse(http.StatusNotFound, "", c.WrapError("failed to create message", err))
 		}
 		respMessage := m.ResponseMessageFromDBMessage(dbMessage)
-		return c.NewGoodResponse(http.StatusCreated, respMessage)
+		return c.NewGoodResponse(http.StatusAccepted, respMessage) // This is 201 in the docs
 	}
 }
 
@@ -56,7 +56,7 @@ func (a *API) handleMessageReplyPost() HandlerFunc {
 			return c.NewBadResponse(http.StatusNotFound, "", c.WrapError("failed to create message", err))
 		}
 		respMessage := m.ResponseMessageFromDBMessage(dbMessage)
-		return c.NewGoodResponse(http.StatusCreated, respMessage)
+		return c.NewGoodResponse(http.StatusAccepted, respMessage) // This is 201 in the docs
 	}
 }
 

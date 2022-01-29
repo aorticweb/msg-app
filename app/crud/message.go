@@ -64,7 +64,7 @@ func GetUserMailbox(db *gorm.DB, userID int64) ([]Message, error) {
 	}
 	var msgs []Message
 	query := db.Preload("Sender").Preload("Recipient").Preload("Group")
-	err = query.Where("recipient_id = ? or group_id in ?", userID, groupIDs).Find(&msgs).Error
+	err = query.Where("(recipient_id = ? or group_id in ?)", userID, groupIDs).Order("sent_at desc").Find(&msgs).Error
 	if err != nil {
 		return nil, err
 	}
